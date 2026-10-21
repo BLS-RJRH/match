@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ฝึกนับตัวเลข 1-100 สำหรับเด็กอนุบาล</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      font-family: 'Mitr', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    .pop-btn {
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .pop-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.6); opacity: 0; }
+      80% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .item-pop {
+      animation: popIn 0.3s ease-out forwards;
+    }
+    .giant-number-btn:active {
+      transform: scale(0.95);
+      filter: brightness(0.9);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-100 flex flex-col justify-between items-center p-3 sm:p-5">
+
+  <!-- กรอบการ์ดหลัก -->
+  <main class="w-full max-w-4xl my-auto py-2 flex items-center justify-center">
+    <div id="mainCard" class="relative w-full aspect-[16/11] max-h-[85vh] bg-white rounded-[36px] shadow-2xl border-[8px] sm:border-[10px] border-slate-300 overflow-hidden flex flex-col justify-between p-4 sm:p-6 md:p-8">
+      
+      <!-- ขอบสีบน-ล่าง -->
+      <div id="topDecoBar" class="absolute top-0 inset-x-0 h-3.5 bg-indigo-500"></div>
+      <div id="bottomDecoBar" class="absolute bottom-0 inset-x-0 h-3.5 bg-indigo-500"></div>
+
+      <!-- แถบด้านบน: สลับโหมด + ปุ่มกลับหน้าหลัก -->
+      <div class="w-full flex items-center justify-between z-20 gap-2 shrink-0">
+        <div class="flex items-center gap-2">
+          <a href="index.html" class="px-3 py-1.5 bg-white hover:bg-slate-100 active:scale-95 text-slate-700 rounded-xl font-bold text-sm border-2 border-slate-300 shadow-xs flex items-center gap-1 transition-all mr-1">
+            <span>🏠</span> <span class="hidden sm:inline">หน้าหลัก</span>
+          </a>
+          <span class="text-2xl sm:text-3xl">🔢</span>
+          <span class="font-black text-slate-700 text-lg sm:text-xl md:text-2xl">ตัวเลขแสนสนุก 1 - 100</span>
+        </div>
+        <div class="flex items-center bg-slate-100 p-1.5 rounded-2xl border-2 border-slate-200">
+          <button onclick="switchMode('count')" id="tabCount" class="px-3 sm:px-5 py-2 rounded-xl font-black text-sm sm:text-base transition-all bg-indigo-600 text-white shadow-sm cursor-pointer">
+            🔢 โหมดนับ 1-100
+          </button>
+          <button onclick="switchMode('quiz')" id="tabQuiz" class="px-3 sm:px-5 py-2 rounded-xl font-black text-sm sm:text-base transition-all text-slate-500 hover:text-slate-700 cursor-pointer">
+            🎯 โหมดเกม 10 ข้อ
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= 1. โหมดนับ 1-100 (COUNT VIEW) ================= -->
+      <div id="countView" class="w-full flex-1 flex flex-col justify-between my-2 z-10 overflow-hidden">
+        
+        <div class="w-full flex items-center justify-between bg-slate-50 px-4 py-2 rounded-2xl border-2 border-slate-200 shrink-0 z-20">
+          <span id="countProgressText" class="font-black text-slate-600 text-base sm:text-lg">ลำดับที่ 1 / 100</span>
+          <button onclick="resetCount()" class="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-200 cursor-pointer">
+            🔄 เริ่มที่ 1 ใหม่
+          </button>
+        </div>
+
+        <div class="flex-1 w-full flex items-center justify-center overflow-hidden my-auto py-2">
+          <button onclick="speakCountNumber()" class="giant-number-btn w-full max-w-lg flex flex-col items-center justify-center cursor-pointer transition-transform group" title="แตะตัวเลขเพื่อฟังเสียง">
+            <div id="countDisplayNumber" class="text-8xl sm:text-[10rem] md:text-[12rem] font-black text-indigo-600 drop-shadow-md leading-none item-pop group-hover:scale-105 transition-transform">
+              1
+            </div>
+            <span class="text-xs sm:text-sm font-bold text-amber-600 mt-2 flex items-center gap-1.5 bg-amber-50 px-4 py-1.5 rounded-full border border-amber-200 shadow-xs">
+              <span>🔊</span> แตะที่ตัวเลขเพื่อฟังเสียง
+            </span>
+          </button>
+        </div>
+
+        <div class="w-full flex items-center justify-between gap-3 sm:gap-4 mt-auto pt-2 shrink-0 z-20">
+          <button onclick="prevCountNumber()" class="w-1/3 py-3.5 sm:py-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-base sm:text-xl shadow-md border-3 border-slate-300 pop-btn cursor-pointer">
+            ◀ ถอยหลัง
+          </button>
+          <button onclick="randomCountNumber()" class="w-1/3 py-3.5 sm:py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-base sm:text-xl shadow-md border-b-6 border-amber-700 pop-btn cursor-pointer">
+            🎲 สุ่มเลข
+          </button>
+          <button onclick="nextCountNumber()" class="w-1/3 py-3.5 sm:py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-base sm:text-xl shadow-md border-b-6 border-indigo-800 pop-btn cursor-pointer">
+            ไปข้างหน้า ▶
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ================= 2. โหมดเกม 10 ข้อ (QUIZ VIEW) ================= -->
+      <div id="quizView" class="w-full flex-1 flex flex-col justify-between my-2 z-10 overflow-hidden hidden">
+        
+        <div class="w-full flex items-center justify-between bg-slate-50 px-4 py-2 rounded-2xl border-2 border-slate-200 shrink-0 z-20">
+          <span id="quizProgressText" class="font-black text-slate-600 text-base sm:text-lg">ข้อที่ 1 / 10</span>
+          <div class="w-1/2 max-w-[200px] bg-slate-200 h-3.5 rounded-full overflow-hidden">
+            <div id="quizProgressBar" class="bg-emerald-500 h-full w-[10%] transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <div class="flex-1 w-full flex items-center justify-center overflow-hidden my-auto py-2">
+          <button onclick="speakQuizCurrentNumber()" class="giant-number-btn w-full max-w-lg flex flex-col items-center justify-center cursor-pointer transition-transform group" title="แตะตัวเลขเพื่อฟังเสียง">
+            <div id="quizNumber" class="text-8xl sm:text-[10rem] md:text-[12rem] font-black text-indigo-600 drop-shadow-md leading-none item-pop group-hover:scale-105 transition-transform">
+              25
+            </div>
+            <span class="text-xs sm:text-sm font-bold text-amber-600 mt-2 flex items-center gap-1.5 bg-amber-50 px-4 py-1.5 rounded-full border border-amber-200 shadow-xs">
+              <span>🔊</span> แตะที่ตัวเลขเพื่อฟังเสียง
+            </span>
+          </button>
+        </div>
+
+        <div class="w-full flex items-center justify-center mt-auto pt-2 shrink-0 z-20">
+          <button onclick="nextQuizNumber()" class="w-full max-w-md py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white rounded-3xl font-black text-xl sm:text-2xl shadow-xl border-b-6 border-emerald-800 pop-btn cursor-pointer flex items-center justify-center gap-2">
+            <span>✨</span> เลขถัดไป <span class="hidden sm:inline text-sm opacity-80">(Space / Enter)</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ================= 3. หน้ารวมสรุปทบทวน 10 ข้อ (RECAP VIEW) ================= -->
+      <div id="recapView" class="w-full flex-1 flex flex-col justify-between my-1 z-10 overflow-hidden hidden">
+        
+        <div class="text-center shrink-0">
+          <div class="text-4xl mb-1">🎉</div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-700">ทบทวนความจำ 10 ตัวเลข</h2>
+          <p class="text-sm sm:text-base font-bold text-slate-500">แตะที่การ์ดเพื่อฟังเสียงอ่านซ้ำได้เลยนะ</p>
+        </div>
+
+        <div class="w-full flex-1 flex items-center justify-center py-2 overflow-y-auto no-scrollbar">
+          <div id="recapGrid" class="grid grid-cols-5 gap-2.5 sm:gap-4 w-full max-w-2xl"></div>
+        </div>
+
+        <div class="w-full flex items-center justify-center shrink-0 pt-1">
+          <button onclick="startQuizMode()" class="w-full max-w-sm py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-2xl font-black text-xl shadow-lg border-b-4 border-indigo-800 pop-btn cursor-pointer">
+            🎲 เล่นรอบใหม่ (Space / Enter)
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    let currentMode = 'count';
+    let currentCountNum = 1;
+    let selectedTenNumbers = [];
+    let quizIndex = 0;
+
+    window.currentUtterance = null;
+    let cachedThaiVoice = null;
+
+    const THAI_ONES = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
+    function numberToThaiWords(num) {
+      const n = parseInt(num, 10);
+      if (n === 100) return "หนึ่งร้อย";
+      if (n < 10) return THAI_ONES[n];
+      const tens = Math.floor(n / 10);
+      const ones = num % 10;
+      let t = "";
+      if (tens === 1) t = "สิบ";
+      else if (tens === 2) t = "ยี่สิบ";
+      else t = THAI_ONES[tens] + "สิบ";
+      let o = "";
+      if (ones === 1) o = "เอ็ด";
+      else if (ones > 1) o = THAI_ONES[ones];
+      return t + o;
+    }
+
+    function findThaiVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      return voices.find(v => v.lang === 'th-TH' || v.lang.startsWith('th')) || null;
+    }
+
+    function speakText(text) {
+      if (!('speechSynthesis' in window)) return;
+
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+      window.speechSynthesis.cancel();
+
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'th-TH';
+      utter.rate = 0.85;
+
+      if (!cachedThaiVoice) {
+        cachedThaiVoice = findThaiVoice();
+      }
+      if (cachedThaiVoice) {
+        utter.voice = cachedThaiVoice;
+      }
+
+      window.currentUtterance = utter;
+      utter.onend = () => { window.currentUtterance = null; };
+      utter.onerror = () => { window.currentUtterance = null; };
+
+      setTimeout(() => {
+        window.speechSynthesis.speak(utter);
+      }, 30);
+    }
+
+    function speakCountNumber() {
+      speakText(numberToThaiWords(currentCountNum));
+    }
+
+    function speakQuizCurrentNumber() {
+      if (selectedTenNumbers.length > 0 && selectedTenNumbers[quizIndex]) {
+        speakText(numberToThaiWords(selectedTenNumbers[quizIndex]));
+      }
+    }
+
+    function speakRecapNumber(num) {
+      speakText(numberToThaiWords(num));
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      const tabCount = document.getElementById('tabCount');
+      const tabQuiz = document.getElementById('tabQuiz');
+      const countView = document.getElementById('countView');
+      const quizView = document.getElementById('quizView');
+      const recapView = document.getElementById('recapView');
+
+      if (mode === 'count') {
+        tabCount.className = "px-3 sm:px-5 py-2 rounded-xl font-black text-sm sm:text-base transition-all bg-indigo-600 text-white shadow-sm cursor-pointer";
+        tabQuiz.className = "px-3 sm:px-5 py-2 rounded-xl font-black text-sm sm:text-base transition-all text-slate-500 hover:text-slate-700 cursor-pointer";
+        countView.classList.remove('hidden');
+        quizView.classList.add('hidden');
+        recapView.classList.add('hidden');
+        renderCountCard();
+      } else {
+        tabQuiz.className = "px-3 sm:px-5 py-2 rounded-xl font-black text-sm sm:text-base transition-all bg-indigo-600 text-white shadow-sm cursor-pointer";
+        tabCount.className = "px-3 sm:px-5 py-2 rounded-xl font-black text-sm sm:text-base transition-all text-slate-500 hover:text-slate-700 cursor-pointer";
+        countView.classList.add('hidden');
+        startQuizMode();
+      }
+    }
+
+    function renderCountCard() {
+      const numEl = document.getElementById('countDisplayNumber');
+      numEl.textContent = currentCountNum;
+      document.getElementById('countProgressText').textContent = `ลำดับที่ ${currentCountNum} / 100`;
+
+      numEl.classList.remove('item-pop');
+      void numEl.offsetWidth;
+      numEl.classList.add('item-pop');
+    }
+
+    function nextCountNumber() {
+      if (currentCountNum < 100) currentCountNum++;
+      else currentCountNum = 1;
+      renderCountCard();
+    }
+
+    function prevCountNumber() {
+      if (currentCountNum > 1) currentCountNum--;
+      else currentCountNum = 100;
+      renderCountCard();
+    }
+
+    function randomCountNumber() {
+      currentCountNum = Math.floor(Math.random() * 100) + 1;
+      renderCountCard();
+    }
+
+    function resetCount() {
+      currentCountNum = 1;
+      renderCountCard();
+    }
+
+    function startQuizMode() {
+      document.getElementById('quizView').classList.remove('hidden');
+      document.getElementById('recapView').classList.add('hidden');
+
+      quizIndex = 0;
+      let pool = Array.from({ length: 100 }, (_, i) => i + 1);
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      selectedTenNumbers = pool.slice(0, 10);
+
+      renderQuizStep();
+    }
+
+    function renderQuizStep() {
+      document.getElementById('quizProgressText').textContent = `ข้อที่ ${quizIndex + 1} / 10`;
+      document.getElementById('quizProgressBar').style.width = `${((quizIndex + 1) / 10) * 100}%`;
+
+      const numEl = document.getElementById('quizNumber');
+      numEl.textContent = selectedTenNumbers[quizIndex];
+      numEl.classList.remove('item-pop');
+      void numEl.offsetWidth;
+      numEl.classList.add('item-pop');
+    }
+
+    function nextQuizNumber() {
+      if (quizIndex < 9) {
+        quizIndex++;
+        renderQuizStep();
+      } else {
+        showRecapBoard();
+      }
+    }
+
+    function showRecapBoard() {
+      document.getElementById('quizView').classList.add('hidden');
+      const recapView = document.getElementById('recapView');
+      recapView.classList.remove('hidden');
+
+      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+
+      const grid = document.getElementById('recapGrid');
+      grid.innerHTML = '';
+
+      selectedTenNumbers.forEach((num, idx) => {
+        const card = document.createElement('button');
+        card.className = "aspect-square flex flex-col items-center justify-center p-2 rounded-2xl bg-slate-50 hover:bg-amber-50 active:scale-95 border-3 border-slate-200 hover:border-amber-400 shadow-md pop-btn cursor-pointer transition-all";
+        card.innerHTML = `
+          <span class="text-xs font-bold text-slate-400">ข้อ ${idx + 1}</span>
+          <span class="text-3xl sm:text-4xl md:text-5xl font-black text-indigo-700">${num}</span>
+          <span class="text-xs text-amber-600 mt-0.5">🔊 แตะฟัง</span>
+        `;
+        card.onclick = () => speakRecapNumber(num);
+        grid.appendChild(card);
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (currentMode === 'count') {
+        if (e.code === 'ArrowRight' || e.code === 'Space') {
+          e.preventDefault();
+          nextCountNumber();
+        } else if (e.code === 'ArrowLeft') {
+          e.preventDefault();
+          prevCountNumber();
+        } else if (e.code === 'Enter') {
+          e.preventDefault();
+          speakCountNumber();
+        }
+      } else {
+        const recapOpen = !document.getElementById('recapView').classList.contains('hidden');
+        if (recapOpen) {
+          if (e.code === 'Space' || e.code === 'Enter') {
+            e.preventDefault();
+            startQuizMode();
+          }
+        } else {
+          if (e.code === 'Space' || e.code === 'Enter') {
+            e.preventDefault();
+            nextQuizNumber();
+          }
+        }
+      }
+    });
+
+    window.addEventListener('touchstart', function unlock() {
+      if ('speechSynthesis' in window) {
+        const u = new SpeechSynthesisUtterance('');
+        window.speechSynthesis.speak(u);
+      }
+      window.removeEventListener('touchstart', unlock);
+    }, { once: true });
+
+    window.onload = () => {
+      renderCountCard();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          cachedThaiVoice = findThaiVoice();
+        };
+      }
+    };
+  </script>
+</body>
+</html>
+```<FollowUp>ต้องการให้อธิบายขั้นตอนการตั้งค่าเปิดใช้งาน GitHub Pages เพื่อให้เว็บไซต์ขึ้นออนไลน์ผ่านลิงก์ฟรี (เช่น yourname.github.io/my-kids-math/) เพิ่มเติมไหมครับ?</FollowUp>
