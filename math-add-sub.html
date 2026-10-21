@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>เกมบวก-ลบเลขด้วยภาพแสนสนุกสำหรับเด็ก</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      font-family: 'Mitr', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .pop-btn {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .pop-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      80% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .item-pop {
+      animation: popIn 0.35s ease-out forwards;
+    }
+    @keyframes zoomBounce {
+      0% { transform: scale(0) translateY(-30px); opacity: 0; }
+      60% { transform: scale(1.3) translateY(5px); opacity: 1; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .add-bounce {
+      animation: zoomBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes slashIn {
+      0% { transform: scale(0) rotate(-45deg); opacity: 0; }
+      70% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .slash-pop {
+      animation: slashIn 0.35s ease-out forwards;
+    }
+  </style>
+</head>
+<body id="bgBody" class="min-h-screen bg-slate-100 flex flex-col justify-between items-center p-4 md:p-6 transition-colors duration-500">
+
+  <!-- กรอบการ์ดแสดงโจทย์ภาพขนาดใหญ่ -->
+  <main class="w-full max-w-5xl my-auto py-2 flex items-center justify-center">
+    <div id="cardFrame" class="relative w-full aspect-[16/10] max-h-[78vh] bg-white rounded-[40px] shadow-2xl border-[10px] border-slate-300 overflow-hidden flex flex-col items-center justify-center p-6 md:p-10">
+      
+      <!-- ขอบสีบน-ล่าง -->
+      <div id="topDecoBar" class="absolute top-0 inset-x-0 h-4 bg-indigo-500"></div>
+      <div id="bottomDecoBar" class="absolute bottom-0 inset-x-0 h-4 bg-indigo-500"></div>
+
+      <!-- ปุ่มกลับหน้าหลัก -->
+      <a href="index.html" class="absolute top-5 left-6 z-30 px-3.5 py-1.5 bg-white/90 hover:bg-white active:scale-95 text-slate-700 rounded-2xl font-bold text-sm sm:text-base border-2 border-slate-300 shadow-sm flex items-center gap-1.5 transition-all">
+        <span>🏠</span> <span>หน้าหลัก</span>
+      </a>
+
+      <!-- แถบสถานะ/คำแนะนำด้านบน -->
+      <div id="instructionBadge" class="absolute top-5 px-6 py-2 rounded-full text-white font-black text-base sm:text-lg md:text-xl shadow-md bg-indigo-600 transition-all flex items-center gap-2">
+        <span id="instructionIcon">👀</span> <span id="instructionText">ลองนับดูสิ มีตั้งต้นกี่ชิ้น?</span>
+      </div>
+
+      <!-- พื้นที่จัดแสดงสิ่งของสุ่ม -->
+      <div id="itemGrid" class="w-full h-full flex flex-wrap items-center justify-center content-center gap-6 sm:gap-8 md:gap-10 mt-6">
+        <!-- สิ่งของจะแสดงที่นี่ -->
+      </div>
+
+      <!-- เลเยอร์เริ่มต้นเกม (ARE YOU READY) -->
+      <div id="startScreen" class="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-6 z-30 p-6 text-center">
+        <div class="text-6xl md:text-8xl animate-bounce">🎲</div>
+        <h1 class="text-5xl md:text-7xl font-black text-indigo-600 tracking-wider drop-shadow-sm">
+          ARE YOU READY?
+        </h1>
+        <p class="text-xl md:text-2xl text-slate-500 font-bold">พร้อมฝึก "บวกและลบเลขด้วยภาพ" หรือยัง?</p>
+        <button onclick="startGame()" class="mt-4 px-10 py-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white rounded-3xl font-extrabold text-2xl md:text-3xl shadow-xl border-b-6 border-emerald-800 pop-btn cursor-pointer">
+          🚀 เริ่มเล่นเกม
+        </button>
+        <span class="text-sm text-slate-400 font-normal">กด Spacebar หรือ Enter เพื่อเริ่มได้เช่นกัน</span>
+      </div>
+
+      <!-- เลเยอร์เฉลยตัวเลขขนาดใหญ่ -->
+      <div id="answerBadge" class="absolute inset-0 bg-white/95 backdrop-blur-sm hidden flex flex-col items-center justify-center gap-3 z-20">
+        <span id="answerTitle" class="text-2xl md:text-3xl font-bold text-slate-500">คำตอบที่ถูกต้องคือ</span>
+        <div id="answerFormula" class="text-3xl md:text-4xl font-extrabold text-slate-700"></div>
+        <div id="answerNumber" class="text-9xl md:text-[13rem] font-black text-emerald-600 drop-shadow-md leading-none my-1">
+          5
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-4 mt-3">
+          <button onclick="hideAnswer()" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-lg md:text-xl shadow-sm border border-slate-300 transition flex items-center gap-2 cursor-pointer">
+            <span>🔄</span> ปิดเฉลย / นับใหม่
+          </button>
+          <button onclick="nextQuestion()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg md:text-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <span>✨</span> สุ่มข้อใหม่ <span class="text-xs opacity-80">(Space / ESC)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- แถบปุ่มควบคุมด้านล่าง -->
+  <footer class="w-full max-w-5xl pb-2 flex flex-col items-center gap-3">
+    <div class="w-full flex items-center justify-between gap-4">
+      <button onclick="handleMainAction()" id="btnAction" class="w-1/2 py-4 md:py-5 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 pop-btn cursor-pointer flex items-center justify-center gap-2">
+        <span id="btnActionIcon">➕</span> <span id="btnActionText">เพิ่มภาพ (Spacebar)</span>
+      </button>
+
+      <button onclick="revealAnswer()" id="btnReveal" class="w-1/2 py-4 md:py-5 bg-amber-500 hover:bg-amber-600 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 border-amber-700 pop-btn cursor-pointer flex items-center justify-center gap-2">
+        <span>💡</span> แสดงเฉลย <span class="hidden sm:inline text-sm opacity-80">(Enter)</span>
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    const ITEMS_POOL = [
+      { emoji: "🍎", bg: "bg-rose-50", deco: "bg-rose-500" },
+      { emoji: "🍊", bg: "bg-orange-50", deco: "bg-orange-500" },
+      { emoji: "🍌", bg: "bg-yellow-50", deco: "bg-yellow-500" },
+      { emoji: "🍉", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "🍇", bg: "bg-purple-50", deco: "bg-purple-500" },
+      { emoji: "🍓", bg: "bg-pink-50", deco: "bg-pink-500" },
+      { emoji: "🥕", bg: "bg-orange-50", deco: "bg-orange-600" },
+      { emoji: "🍦", bg: "bg-pink-50", deco: "bg-pink-400" },
+      { emoji: "🍩", bg: "bg-amber-50", deco: "bg-amber-600" },
+      { emoji: "🐶", bg: "bg-amber-50", deco: "bg-amber-500" },
+      { emoji: "🐱", bg: "bg-sky-50", deco: "bg-sky-400" },
+      { emoji: "🐰", bg: "bg-pink-50", deco: "bg-pink-400" },
+      { emoji: "🐸", bg: "bg-emerald-50", deco: "bg-emerald-500" },
+      { emoji: "🐥", bg: "bg-yellow-50", deco: "bg-yellow-400" },
+      { emoji: "🐠", bg: "bg-cyan-50", deco: "bg-cyan-500" },
+      { emoji: "🚗", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "✈️", bg: "bg-sky-50", deco: "bg-sky-500" },
+      { emoji: "🚀", bg: "bg-indigo-50", deco: "bg-indigo-600" },
+      { emoji: "🎈", bg: "bg-rose-50", deco: "bg-rose-500" },
+      { emoji: "⭐", bg: "bg-yellow-50", deco: "bg-yellow-400" }
+    ];
+
+    let isGameStarted = false;
+    let step = 1;
+    let currentMode = 'add';
+    let currentItem = null;
+    let numA = 0;
+    let numB = 0;
+    let finalResult = 0;
+    let itemElements = [];
+
+    function startGame() {
+      isGameStarted = true;
+      document.getElementById('startScreen').classList.add('hidden');
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      if (!isGameStarted) return;
+      hideAnswer();
+      step = 1;
+
+      let pickedItem;
+      do {
+        pickedItem = ITEMS_POOL[Math.floor(Math.random() * ITEMS_POOL.length)];
+      } while (pickedItem === currentItem && ITEMS_POOL.length > 1);
+      currentItem = pickedItem;
+
+      currentMode = Math.random() > 0.5 ? 'add' : 'sub';
+
+      if (currentMode === 'add') {
+        numA = Math.floor(Math.random() * 5) + 1;
+        numB = Math.floor(Math.random() * (10 - numA)) + 1;
+        finalResult = numA + numB;
+      } else {
+        numA = Math.floor(Math.random() * 9) + 2;
+        numB = Math.floor(Math.random() * (numA - 1)) + 1;
+        finalResult = numA - numB;
+      }
+
+      document.getElementById('bgBody').className = `min-h-screen ${currentItem.bg} flex flex-col justify-between items-center p-4 md:p-6 transition-colors duration-500`;
+      document.getElementById('topDecoBar').className = `absolute top-0 inset-x-0 h-4 ${currentItem.deco}`;
+      document.getElementById('bottomDecoBar').className = `absolute bottom-0 inset-x-0 h-4 ${currentItem.deco}`;
+
+      const badge = document.getElementById('instructionBadge');
+      badge.className = "absolute top-5 px-6 py-2 rounded-full text-white font-black text-base sm:text-lg md:text-xl shadow-md bg-indigo-600 transition-all flex items-center gap-2";
+      document.getElementById('instructionIcon').textContent = "👀";
+      document.getElementById('instructionText').textContent = "ลองนับดูสิ มีตั้งต้นกี่ชิ้น?";
+
+      const btnAction = document.getElementById('btnAction');
+      if (currentMode === 'add') {
+        btnAction.className = "w-1/2 py-4 md:py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 border-emerald-700 pop-btn cursor-pointer flex items-center justify-center gap-2";
+        document.getElementById('btnActionIcon').textContent = "➕";
+        document.getElementById('btnActionText').textContent = "เพิ่มภาพเข้ามา (Spacebar)";
+      } else {
+        btnAction.className = "w-1/2 py-4 md:py-5 bg-rose-500 hover:bg-rose-600 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 border-rose-700 pop-btn cursor-pointer flex items-center justify-center gap-2";
+        document.getElementById('btnActionIcon').textContent = "✂️";
+        document.getElementById('btnActionText').textContent = "ตัดภาพออก (Spacebar)";
+      }
+
+      renderInitialItems();
+    }
+
+    function renderInitialItems() {
+      const grid = document.getElementById('itemGrid');
+      grid.innerHTML = '';
+      itemElements = [];
+
+      let maxDisplayCount = currentMode === 'add' ? finalResult : numA;
+      let sizeClass = maxDisplayCount > 7 ? "text-6xl sm:text-7xl md:text-8xl" : "text-7xl sm:text-8xl md:text-9xl";
+
+      for (let i = 0; i < numA; i++) {
+        const wrap = document.createElement('div');
+        wrap.className = `relative ${sizeClass} item-pop filter drop-shadow-md select-none leading-none transition-all duration-500`;
+        wrap.style.animationDelay = `${i * 0.04}s`;
+
+        const emojiSpan = document.createElement('span');
+        emojiSpan.textContent = currentItem.emoji;
+        wrap.appendChild(emojiSpan);
+
+        grid.appendChild(wrap);
+        itemElements.push(wrap);
+      }
+    }
+
+    function applyStepTwo() {
+      if (step !== 1) return;
+      step = 2;
+
+      const badge = document.getElementById('instructionBadge');
+
+      if (currentMode === 'add') {
+        const grid = document.getElementById('itemGrid');
+        let sizeClass = finalResult > 7 ? "text-6xl sm:text-7xl md:text-8xl" : "text-7xl sm:text-8xl md:text-9xl";
+
+        for (let j = 0; j < numB; j++) {
+          const wrap = document.createElement('div');
+          wrap.className = `relative ${sizeClass} add-bounce filter drop-shadow-xl select-none leading-none rounded-2xl ring-4 ring-emerald-400 bg-emerald-100/50 p-1`;
+          wrap.style.animationDelay = `${j * 0.08}s`;
+          wrap.textContent = currentItem.emoji;
+
+          const star = document.createElement('div');
+          star.className = "absolute -top-3 -right-2 text-2xl select-none animate-spin";
+          star.style.animationDuration = "3s";
+          star.textContent = "✨";
+          wrap.appendChild(star);
+
+          grid.appendChild(wrap);
+        }
+
+        badge.className = "absolute top-5 px-6 py-2 rounded-full text-white font-black text-base sm:text-lg md:text-xl shadow-md bg-teal-600 transition-all flex items-center gap-2";
+        document.getElementById('instructionIcon').textContent = "✨";
+        document.getElementById('instructionText').textContent = "มีมาเพิ่มแล้ว! รวมทั้งหมดเป็นกี่ชิ้นนะ?";
+
+      } else {
+        let indices = Array.from({ length: numA }, (_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        const removedIndices = indices.slice(0, numB);
+
+        removedIndices.forEach((idx, order) => {
+          const el = itemElements[idx];
+          setTimeout(() => {
+            el.classList.add("grayscale", "opacity-35", "scale-90");
+
+            const cross = document.createElement('div');
+            cross.className = "absolute inset-0 flex items-center justify-center text-red-600 text-5xl sm:text-6xl md:text-7xl font-black drop-shadow-md slash-pop select-none pointer-events-none";
+            cross.textContent = "❌";
+            el.appendChild(cross);
+          }, order * 100);
+        });
+
+        badge.className = "absolute top-5 px-6 py-2 rounded-full text-white font-black text-base sm:text-lg md:text-xl shadow-md bg-rose-600 transition-all flex items-center gap-2";
+        document.getElementById('instructionIcon').textContent = "🤔";
+        document.getElementById('instructionText').textContent = "โดนหักออกไปแล้ว... เหลืออีกกี่ชิ้นนะ?";
+      }
+
+      const btnAction = document.getElementById('btnAction');
+      btnAction.className = "w-1/2 py-4 md:py-5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 border-indigo-800 pop-btn cursor-pointer flex items-center justify-center gap-2";
+      document.getElementById('btnActionIcon').textContent = "🎲";
+      document.getElementById('btnActionText').textContent = "สุ่มข้อใหม่ (Spacebar)";
+    }
+
+    function handleMainAction() {
+      if (step === 1) {
+        applyStepTwo();
+      } else {
+        nextQuestion();
+      }
+    }
+
+    function revealAnswer() {
+      if (!isGameStarted) return;
+
+      if (step === 1) {
+        applyStepTwo();
+      }
+
+      if (currentMode === 'add') {
+        document.getElementById('answerTitle').textContent = "จำนวนทั้งหมดรวมกันคือ";
+        document.getElementById('answerFormula').textContent = `${numA} + ${numB} = ${finalResult}`;
+      } else {
+        document.getElementById('answerTitle').textContent = "จำนวนที่เหลืออยู่คือ";
+        document.getElementById('answerFormula').textContent = `${numA} - ${numB} = ${finalResult}`;
+      }
+
+      document.getElementById('answerNumber').textContent = finalResult;
+      document.getElementById('answerBadge').classList.remove('hidden');
+
+      confetti({
+        particleCount: 35,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+    }
+
+    function hideAnswer() {
+      document.getElementById('answerBadge').classList.add('hidden');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (!isGameStarted) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          startGame();
+        }
+        return;
+      }
+
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        nextQuestion();
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        const badge = document.getElementById('answerBadge');
+        if (!badge.classList.contains('hidden')) {
+          nextQuestion();
+        } else {
+          handleMainAction();
+        }
+      } else if (e.code === 'Enter') {
+        e.preventDefault();
+        const badge = document.getElementById('answerBadge');
+        if (badge.classList.contains('hidden')) {
+          revealAnswer();
+        } else {
+          hideAnswer();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
