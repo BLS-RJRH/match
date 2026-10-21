@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>เกมฝึกนับจำนวน 1-10 สำหรับเด็ก</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      font-family: 'Mitr', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .pop-btn {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.15);
+    }
+    .pop-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.3); opacity: 0; }
+      80% { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .item-pop {
+      animation: popIn 0.3s ease-out forwards;
+    }
+  </style>
+</head>
+<body id="bgBody" class="min-h-screen bg-slate-100 flex flex-col justify-between items-center p-4 md:p-6 transition-colors duration-500">
+
+  <!-- กรอบการ์ดแสดงสิ่งของขนาดใหญ่พิเศษ -->
+  <main class="w-full max-w-5xl my-auto py-2 flex items-center justify-center">
+    <div id="cardFrame" class="relative w-full aspect-[16/10] max-h-[75vh] bg-white rounded-[40px] shadow-2xl border-[10px] border-slate-300 overflow-hidden flex flex-col items-center justify-center p-6 md:p-12">
+      
+      <!-- ขอบสีบน-ล่าง -->
+      <div id="topDecoBar" class="absolute top-0 inset-x-0 h-4 bg-indigo-500"></div>
+      <div id="bottomDecoBar" class="absolute bottom-0 inset-x-0 h-4 bg-indigo-500"></div>
+
+      <!-- ปุ่มกลับหน้าหลัก -->
+      <a href="index.html" class="absolute top-6 left-6 z-30 px-3.5 py-1.5 bg-white/90 hover:bg-white active:scale-95 text-slate-700 rounded-2xl font-bold text-sm sm:text-base border-2 border-slate-300 shadow-sm flex items-center gap-1.5 transition-all">
+        <span>🏠</span> <span>หน้าหลัก</span>
+      </a>
+
+      <!-- พื้นที่จัดแสดงสิ่งของสุ่ม -->
+      <div id="itemGrid" class="w-full h-full flex flex-wrap items-center justify-center content-center gap-6 md:gap-10">
+        <!-- สิ่งของสุ่มจะแสดงที่นี่ -->
+      </div>
+
+      <!-- เลเยอร์เริ่มต้นเกม (ARE YOU READY) -->
+      <div id="startScreen" class="absolute inset-0 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center gap-6 z-30 p-6 text-center">
+        <div class="text-6xl md:text-8xl">🎯</div>
+        <h1 class="text-5xl md:text-7xl font-black text-indigo-600 tracking-wider drop-shadow-sm animate-pulse">
+          ARE YOU READY?
+        </h1>
+        <p class="text-xl md:text-2xl text-slate-500 font-bold">พร้อมฝึกนับเลข 1 - 10 กันหรือยัง?</p>
+        <button onclick="startGame()" class="mt-4 px-10 py-5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-95 text-white rounded-3xl font-extrabold text-2xl md:text-3xl shadow-xl border-b-6 border-emerald-800 pop-btn cursor-pointer">
+          🚀 เริ่มเล่นเกม
+        </button>
+        <span class="text-sm text-slate-400 font-normal">กด Spacebar หรือ Enter เพื่อเริ่มได้เช่นกัน</span>
+      </div>
+
+      <!-- เลเยอร์เฉลยตัวเลขขนาดใหญ่ -->
+      <div id="answerBadge" class="absolute inset-0 bg-white/90 backdrop-blur-sm hidden flex flex-col items-center justify-center gap-3 z-20">
+        <span class="text-2xl md:text-3xl font-bold text-slate-500">จำนวนทั้งหมดคือ</span>
+        <div id="answerNumber" class="text-9xl md:text-[14rem] font-black text-emerald-600 drop-shadow-md leading-none my-2">
+          5
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+          <button onclick="hideAnswer()" class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-lg md:text-xl shadow-sm border border-slate-300 transition flex items-center gap-2 cursor-pointer">
+            <span>🔄</span> ปิดเฉลย / นับใหม่
+          </button>
+          <button onclick="nextRandomQuestion()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg md:text-xl shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <span>✨</span> ข้อต่อไป <span class="text-xs opacity-80">(ESC)</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- แถบปุ่มควบคุมด้านล่าง -->
+  <footer class="w-full max-w-5xl pb-2 flex flex-col items-center gap-3">
+    <div class="w-full flex items-center justify-between gap-4">
+      <!-- ปุ่มแสดงเฉลย -->
+      <button onclick="revealAnswer()" id="btnReveal" class="w-1/2 py-4 md:py-5 bg-amber-500 hover:bg-amber-600 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 border-amber-700 pop-btn cursor-pointer flex items-center justify-center gap-2">
+        <span>💡</span> แสดงเฉลย <span class="hidden sm:inline text-sm opacity-80">(Enter)</span>
+      </button>
+
+      <!-- ปุ่มสุ่มข้อใหม่ -->
+      <button onclick="nextRandomQuestion()" class="w-1/2 py-4 md:py-5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:opacity-95 text-white rounded-3xl font-extrabold text-xl md:text-2xl shadow-xl border-b-6 border-emerald-800 pop-btn cursor-pointer flex items-center justify-center gap-2">
+        <span>🎲</span> สุ่มข้อใหม่ <span class="hidden sm:inline text-sm opacity-80">(Space / ESC)</span>
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    const ITEMS_POOL = [
+      { emoji: "🍎", bg: "bg-rose-50", deco: "bg-rose-500" },
+      { emoji: "🍊", bg: "bg-orange-50", deco: "bg-orange-500" },
+      { emoji: "🍌", bg: "bg-yellow-50", deco: "bg-yellow-500" },
+      { emoji: "🍉", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "🍇", bg: "bg-purple-50", deco: "bg-purple-500" },
+      { emoji: "🍓", bg: "bg-pink-50", deco: "bg-pink-500" },
+      { emoji: "🍍", bg: "bg-amber-50", deco: "bg-amber-500" },
+      { emoji: "🍒", bg: "bg-rose-50", deco: "bg-rose-600" },
+      { emoji: "🍑", bg: "bg-orange-50", deco: "bg-orange-400" },
+      { emoji: "🥑", bg: "bg-emerald-50", deco: "bg-emerald-600" },
+      { emoji: "🥕", bg: "bg-orange-50", deco: "bg-orange-600" },
+      { emoji: "🌽", bg: "bg-amber-50", deco: "bg-amber-400" },
+      { emoji: "🍦", bg: "bg-pink-50", deco: "bg-pink-400" },
+      { emoji: "🍩", bg: "bg-amber-50", deco: "bg-amber-600" },
+      { emoji: "🧁", bg: "bg-fuchsia-50", deco: "bg-fuchsia-500" },
+      { emoji: "🍰", bg: "bg-rose-50", deco: "bg-rose-400" },
+      { emoji: "🍕", bg: "bg-yellow-50", deco: "bg-amber-500" },
+      { emoji: "🍔", bg: "bg-amber-50", deco: "bg-amber-700" },
+      { emoji: "🍟", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "🍭", bg: "bg-sky-50", deco: "bg-pink-500" },
+      { emoji: "🐶", bg: "bg-amber-50", deco: "bg-amber-500" },
+      { emoji: "🐱", bg: "bg-sky-50", deco: "bg-sky-400" },
+      { emoji: "🐰", bg: "bg-pink-50", deco: "bg-pink-400" },
+      { emoji: "🐻", bg: "bg-amber-50", deco: "bg-amber-700" },
+      { emoji: "🐼", bg: "bg-slate-50", deco: "bg-slate-600" },
+      { emoji: "🐨", bg: "bg-zinc-50", deco: "bg-zinc-500" },
+      { emoji: "🦁", bg: "bg-yellow-50", deco: "bg-amber-500" },
+      { emoji: "🐯", bg: "bg-orange-50", deco: "bg-orange-500" },
+      { emoji: "🦊", bg: "bg-orange-50", deco: "bg-orange-600" },
+      { emoji: "🐵", bg: "bg-stone-50", deco: "bg-stone-500" },
+      { emoji: "🐸", bg: "bg-emerald-50", deco: "bg-emerald-500" },
+      { emoji: "🐥", bg: "bg-yellow-50", deco: "bg-yellow-400" },
+      { emoji: "🐧", bg: "bg-cyan-50", deco: "bg-cyan-600" },
+      { emoji: "🐠", bg: "bg-cyan-50", deco: "bg-cyan-500" },
+      { emoji: "🐙", bg: "bg-purple-50", deco: "bg-purple-500" },
+      { emoji: "🦀", bg: "bg-rose-50", deco: "bg-rose-500" },
+      { emoji: "🐬", bg: "bg-sky-50", deco: "bg-sky-500" },
+      { emoji: "🐳", bg: "bg-blue-50", deco: "bg-blue-500" },
+      { emoji: "🦋", bg: "bg-indigo-50", deco: "bg-indigo-400" },
+      { emoji: "🐞", bg: "bg-red-50", deco: "bg-red-600" },
+      { emoji: "🚗", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "🚌", bg: "bg-yellow-50", deco: "bg-yellow-500" },
+      { emoji: "🚓", bg: "bg-blue-50", deco: "bg-blue-600" },
+      { emoji: "🚑", bg: "bg-rose-50", deco: "bg-rose-500" },
+      { emoji: "🚒", bg: "bg-red-50", deco: "bg-red-600" },
+      { emoji: "✈️", bg: "bg-sky-50", deco: "bg-sky-500" },
+      { emoji: "🚀", bg: "bg-indigo-50", deco: "bg-indigo-600" },
+      { emoji: "🚂", bg: "bg-zinc-50", deco: "bg-zinc-700" },
+      { emoji: "⛵", bg: "bg-cyan-50", deco: "bg-cyan-500" },
+      { emoji: "🚁", bg: "bg-teal-50", deco: "bg-teal-600" },
+      { emoji: "⚽", bg: "bg-emerald-50", deco: "bg-emerald-600" },
+      { emoji: "🏀", bg: "bg-orange-50", deco: "bg-orange-600" },
+      { emoji: "🎾", bg: "bg-lime-50", deco: "bg-lime-500" },
+      { emoji: "🎈", bg: "bg-rose-50", deco: "bg-rose-500" },
+      { emoji: "🎁", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "🎒", bg: "bg-indigo-50", deco: "bg-indigo-500" },
+      { emoji: "✏️", bg: "bg-amber-50", deco: "bg-amber-500" },
+      { emoji: "✂️", bg: "bg-blue-50", deco: "bg-blue-500" },
+      { emoji: "📕", bg: "bg-red-50", deco: "bg-red-500" },
+      { emoji: "⏰", bg: "bg-purple-50", deco: "bg-purple-500" },
+      { emoji: "🧸", bg: "bg-amber-50", deco: "bg-amber-600" },
+      { emoji: "⭐", bg: "bg-yellow-50", deco: "bg-yellow-400" },
+      { emoji: "☀️", bg: "bg-amber-50", deco: "bg-amber-500" },
+      { emoji: "🌈", bg: "bg-sky-50", deco: "bg-indigo-500" },
+      { emoji: "🌻", bg: "bg-yellow-50", deco: "bg-yellow-500" },
+      { emoji: "🌸", bg: "bg-pink-50", deco: "bg-pink-400" },
+      { emoji: "🍄", bg: "bg-red-50", deco: "bg-red-500" }
+    ];
+
+    let currentCount = 0;
+    let currentItem = null;
+    let isGameStarted = false;
+
+    function startGame() {
+      isGameStarted = true;
+      document.getElementById('startScreen').classList.add('hidden');
+      nextRandomQuestion();
+    }
+
+    function nextRandomQuestion() {
+      if (!isGameStarted) return;
+      hideAnswer();
+
+      let pickedItem;
+      do {
+        pickedItem = ITEMS_POOL[Math.floor(Math.random() * ITEMS_POOL.length)];
+      } while (pickedItem === currentItem && ITEMS_POOL.length > 1);
+      currentItem = pickedItem;
+
+      let nextCount;
+      do {
+        nextCount = Math.floor(Math.random() * 10) + 1;
+      } while (nextCount === currentCount);
+      currentCount = nextCount;
+
+      document.getElementById('bgBody').className = `min-h-screen ${currentItem.bg} flex flex-col justify-between items-center p-4 md:p-6 transition-colors duration-500`;
+      document.getElementById('topDecoBar').className = `absolute top-0 inset-x-0 h-4 ${currentItem.deco}`;
+      document.getElementById('bottomDecoBar').className = `absolute bottom-0 inset-x-0 h-4 ${currentItem.deco}`;
+
+      let sizeClass = "text-8xl sm:text-9xl md:text-[10rem]";
+      if (currentCount > 7) {
+        sizeClass = "text-6xl sm:text-7xl md:text-8xl";
+      } else if (currentCount > 4) {
+        sizeClass = "text-7xl sm:text-8xl md:text-9xl";
+      }
+
+      const grid = document.getElementById('itemGrid');
+      grid.innerHTML = '';
+      for (let i = 0; i < currentCount; i++) {
+        const itemEl = document.createElement('div');
+        itemEl.className = `${sizeClass} item-pop filter drop-shadow-md select-none p-2 leading-none`;
+        itemEl.style.animationDelay = `${i * 0.03}s`;
+        itemEl.textContent = currentItem.emoji;
+        grid.appendChild(itemEl);
+      }
+    }
+
+    function revealAnswer() {
+      if (!isGameStarted) return;
+      document.getElementById('answerNumber').textContent = currentCount;
+      document.getElementById('answerBadge').classList.remove('hidden');
+
+      confetti({
+        particleCount: 30,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+    }
+
+    function hideAnswer() {
+      document.getElementById('answerBadge').classList.add('hidden');
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (!isGameStarted) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          startGame();
+        }
+        return;
+      }
+
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        nextRandomQuestion();
+      } else if (e.code === 'Space') {
+        e.preventDefault();
+        nextRandomQuestion();
+      } else if (e.code === 'Enter') {
+        e.preventDefault();
+        const badge = document.getElementById('answerBadge');
+        if (badge.classList.contains('hidden')) {
+          revealAnswer();
+        } else {
+          hideAnswer();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
