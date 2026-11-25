@@ -1,0 +1,31 @@
+name: Generate Thai number audio
+on:
+  push:
+    branches: [numbers-audio-v2]
+    paths:
+      - '.github/workflows/generate-number-audio.yml'
+      - 'generate_audio.py'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/numbers-audio-v2'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install gTTS==2.5.4
+      - run: python generate_audio.py
+      - run: |
+          python -c "from pathlib import Path; assert all(Path(f'audio/{i}.mp3').is_file() and Path(f'audio/{i}.mp3').stat().st_size > 0 for i in range(1,101))"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add audio/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add Thai number MP3 audio 1-100'
+            git push origin HEAD:numbers-audio-v2
+          fi
