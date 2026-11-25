@@ -88,7 +88,7 @@
               1
             </div>
             <span class="text-xs sm:text-sm font-bold text-amber-600 mt-2 flex items-center gap-1.5 bg-amber-50 px-4 py-1.5 rounded-full border border-amber-200 shadow-xs">
-              <span>🔊</span> แตะที่ตัวเลขเพื่อฟังเสียง
+              <span>🔊</span> แตะที่ตัวเลขเพื่อฟังเสียงเฉลย
             </span>
           </button>
         </div>
@@ -123,7 +123,7 @@
               25
             </div>
             <span class="text-xs sm:text-sm font-bold text-amber-600 mt-2 flex items-center gap-1.5 bg-amber-50 px-4 py-1.5 rounded-full border border-amber-200 shadow-xs">
-              <span>🔊</span> แตะที่ตัวเลขเพื่อฟังเสียง
+              <span>🔊</span> แตะที่ตัวเลขเพื่อฟังเสียงเฉลย
             </span>
           </button>
         </div>
@@ -192,49 +192,42 @@
       return voices.find(v => v.lang === 'th-TH' || v.lang.startsWith('th')) || null;
     }
 
-    function speakText(text) {
-      if (!('speechSynthesis' in window)) return;
-
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-      window.speechSynthesis.cancel();
-
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'th-TH';
-      utter.rate = 0.85;
-
-      if (!cachedThaiVoice) {
-        cachedThaiVoice = findThaiVoice();
-      }
-      if (cachedThaiVoice) {
-        utter.voice = cachedThaiVoice;
-      }
-
-      window.currentUtterance = utter;
-      utter.onend = () => { window.currentUtterance = null; };
-      utter.onerror = () => { window.currentUtterance = null; };
-
-      setTimeout(() => {
+    let audioPlayer = null;
+    let audioToken = 0;
+    function stopAudio() {
+      audioToken++;
+      if (audioPlayer) { audioPlayer.pause(); audioPlayer = null; }
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      window.currentUtterance = null;
+    }
+    function speakNumber(num) {
+      if (!Number.isInteger(num) || num < 1 || num > 100) return;
+      stopAudio();
+      const token = audioToken;
+      const audio = new Audio('audio/' + num + '.mp3');
+      audioPlayer = audio;
+      let failed = false;
+      const fallback = () => {
+        if (failed || token !== audioToken) return;
+        failed = true;
+        audio.pause();
+        const voice = findThaiVoice();
+        if (!voice) { alert('ไม่สามารถเล่นเสียงภาษาไทยได้ กรุณาลองใหม่'); return; }
+        const utter = new SpeechSynthesisUtterance(numberToThaiWords(num));
+        utter.lang = 'th-TH'; utter.voice = voice; utter.rate = 0.85;
+        window.currentUtterance = utter;
+        utter.onerror = (e) => { if (token === audioToken && e.error !== 'canceled' && e.error !== 'interrupted') alert('ไม่สามารถเล่นเสียงได้ กรุณาลองใหม่'); };
         window.speechSynthesis.speak(utter);
-      }, 30);
+      };
+      audio.addEventListener('error', fallback, {once:true});
+      audio.play().catch(fallback);
     }
-
-    function speakCountNumber() {
-      speakText(numberToThaiWords(currentCountNum));
-    }
-
-    function speakQuizCurrentNumber() {
-      if (selectedTenNumbers.length > 0 && selectedTenNumbers[quizIndex]) {
-        speakText(numberToThaiWords(selectedTenNumbers[quizIndex]));
-      }
-    }
-
-    function speakRecapNumber(num) {
-      speakText(numberToThaiWords(num));
-    }
+    function speakCountNumber() { speakNumber(currentCountNum); }
+    function speakQuizCurrentNumber() { speakNumber(selectedTenNumbers[quizIndex]); }
+    function speakRecapNumber(num) { speakNumber(num); }
 
     function switchMode(mode) {
+      stopAudio();
       currentMode = mode;
       const tabCount = document.getElementById('tabCount');
       const tabQuiz = document.getElementById('tabQuiz');
@@ -258,6 +251,7 @@
     }
 
     function renderCountCard() {
+      stopAudio();
       const numEl = document.getElementById('countDisplayNumber');
       numEl.textContent = currentCountNum;
       document.getElementById('countProgressText').textContent = `ลำดับที่ ${currentCountNum} / 100`;
@@ -290,6 +284,7 @@
     }
 
     function startQuizMode() {
+      stopAudio();
       document.getElementById('quizView').classList.remove('hidden');
       document.getElementById('recapView').classList.add('hidden');
 
@@ -305,6 +300,7 @@
     }
 
     function renderQuizStep() {
+      stopAudio();
       document.getElementById('quizProgressText').textContent = `ข้อที่ ${quizIndex + 1} / 10`;
       document.getElementById('quizProgressBar').style.width = `${((quizIndex + 1) / 10) * 100}%`;
 
@@ -325,11 +321,12 @@
     }
 
     function showRecapBoard() {
+      stopAudio();
       document.getElementById('quizView').classList.add('hidden');
       const recapView = document.getElementById('recapView');
       recapView.classList.remove('hidden');
 
-      confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+      if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
 
       const grid = document.getElementById('recapGrid');
       grid.innerHTML = '';
@@ -375,13 +372,6 @@
       }
     });
 
-    window.addEventListener('touchstart', function unlock() {
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance('');
-        window.speechSynthesis.speak(u);
-      }
-      window.removeEventListener('touchstart', unlock);
-    }, { once: true });
 
     window.onload = () => {
       renderCountCard();
@@ -394,4 +384,3 @@
   </script>
 </body>
 </html>
-```<FollowUp>ต้องการให้อธิบายขั้นตอนการตั้งค่าเปิดใช้งาน GitHub Pages เพื่อให้เว็บไซต์ขึ้นออนไลน์ผ่านลิงก์ฟรี (เช่น yourname.github.io/my-kids-math/) เพิ่มเติมไหมครับ?</FollowUp>
