@@ -1,0 +1,52 @@
+name: Refresh Thai neural audio
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/refresh-neural-audio.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install edge-tts
+      - name: Generate all numbers
+        run: |
+          python - <<'PY'
+          import asyncio, edge_tts
+          from pathlib import Path
+          words = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]
+          def thai(n):
+              if n == 100: return "หนึ่งร้อย"
+              if n < 10: return words[n]
+              t,o = divmod(n,10)
+              return ("สิบ" if t == 1 else "ยี่สิบ" if t == 2 else words[t]+"สิบ") + ("เอ็ด" if o == 1 else words[o])
+          async def main():
+              p=Path("audio")
+              for n in range(1,101):
+                  for attempt in range(3):
+                      try:
+                          await edge_tts.Communicate(thai(n), "th-TH-PremwadeeNeural", rate="-10%").save(str(p/f"{n}.mp3"))
+                          assert (p/f"{n}.mp3").stat().st_size > 1000
+                          break
+                      except Exception:
+                          if attempt == 2: raise
+                          await asyncio.sleep(3)
+                  print(n, thai(n), flush=True)
+          asyncio.run(main())
+          PY
+      - name: Publish complete audio set
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add audio/
+          if ! git diff --cached --quiet; then
+            git commit -m 'Replace number audio with Thai Premwadee Neural'
+            git push origin HEAD:main
+          fi
